@@ -566,8 +566,6 @@ main(void)
 		uint32_t cmd;
 		const char *str;
 	} unsupp_cmds[] = {
-		{ ARG_STR(VIDIOC_G_AUDIO) },
-		{ ARG_STR(VIDIOC_S_AUDIO) },
 #ifdef VIDIOC_G_EDID
 		{ ARG_STR(VIDIOC_G_EDID) },
 #endif
@@ -575,16 +573,12 @@ main(void)
 		{ ARG_STR(VIDIOC_S_EDID) },
 #endif
 		{ ARG_STR(VIDIOC_ENUMOUTPUT) },
-		{ ARG_STR(VIDIOC_G_AUDOUT) },
-		{ ARG_STR(VIDIOC_S_AUDOUT) },
 		{ ARG_STR(VIDIOC_G_MODULATOR) },
 		{ ARG_STR(VIDIOC_S_MODULATOR) },
 		{ ARG_STR(VIDIOC_G_FREQUENCY) },
 		{ ARG_STR(VIDIOC_S_FREQUENCY) },
 		{ ARG_STR(VIDIOC_G_JPEGCOMP) },
 		{ ARG_STR(VIDIOC_S_JPEGCOMP) },
-		{ ARG_STR(VIDIOC_ENUMAUDIO) },
-		{ ARG_STR(VIDIOC_ENUMAUDOUT) },
 		{ ARG_STR(VIDIOC_G_SLICED_VBI_CAP) },
 #ifdef VIDIOC_G_ENC_INDEX
 		{ ARG_STR(VIDIOC_G_ENC_INDEX) },
@@ -1312,6 +1306,56 @@ main(void)
 	       p_tuner->signal, p_tuner->afc,
 	       p_tuner->reserved[0], p_tuner->reserved[1],
 	       p_tuner->reserved[2], p_tuner->reserved[3]);
+
+	/* VIDIOC_G_AUDIO */
+	ioctl(-1, VIDIOC_G_AUDIO, 0);
+	printf("ioctl(-1, %s, NULL) = -1 EBADF (%m)\n",
+	       XLAT_STR(VIDIOC_G_AUDIO));
+
+	struct v4l2_audio *const p_v4l2_audio =
+		tail_alloc(sizeof(*p_v4l2_audio));
+	fill_memory32(p_v4l2_audio, sizeof(*p_v4l2_audio));
+	ioctl(-1, VIDIOC_G_AUDIO, p_v4l2_audio);
+	printf("ioctl(-1, %s, {reserved=[0x80a0c0eb, 0x80a0c0ec]}"
+	       ") = -1 EBADF (%m)\n",
+	       XLAT_STR(VIDIOC_G_AUDIO));
+
+	memset(p_v4l2_audio->reserved, 0, sizeof(p_v4l2_audio->reserved));
+	ioctl(-1, VIDIOC_G_AUDIO, p_v4l2_audio);
+	printf("ioctl(-1, %s, %p) = -1 EBADF (%m)\n",
+	       XLAT_STR(VIDIOC_G_AUDIO), p_v4l2_audio);
+
+	/* VIDIOC_S_AUDIO */
+	ioctl(-1, VIDIOC_S_AUDIO, 0);
+	printf("ioctl(-1, %s, NULL) = -1 EBADF (%m)\n",
+	       XLAT_STR(VIDIOC_S_AUDIO));
+
+	fill_memory32(p_v4l2_audio, sizeof(*p_v4l2_audio));
+	strcpy((char *) p_v4l2_audio->name, "cum tacent, clamant");
+	p_v4l2_audio->index = 0xfacebeef;
+	p_v4l2_audio->capability = V4L2_AUDCAP_STEREO | V4L2_AUDCAP_AVL;
+	p_v4l2_audio->mode = V4L2_AUDMODE_AVL;
+
+	ioctl(-1, VIDIOC_S_AUDIO, p_v4l2_audio);
+	printf("ioctl(-1, %s, {index=%u, name=\"cum tacent, clamant\""
+	       ", capability=" XLAT_FMT ", mode=" XLAT_FMT
+	       ", reserved=[%#x, %#x]}) = -1 EBADF (%m)\n",
+	       XLAT_STR(VIDIOC_S_AUDIO), p_v4l2_audio->index,
+	       XLAT_ARGS(V4L2_AUDCAP_STEREO|V4L2_AUDCAP_AVL),
+	       XLAT_ARGS(V4L2_AUDMODE_AVL),
+	       p_v4l2_audio->reserved[0], p_v4l2_audio->reserved[1]);
+
+	memset(p_v4l2_audio->reserved, 0, sizeof(p_v4l2_audio->reserved));
+	p_v4l2_audio->index = 0;
+	p_v4l2_audio->capability = 0xbeef0d1c;
+	p_v4l2_audio->mode = 0xdeadface;
+	ioctl(-1, VIDIOC_S_AUDIO, p_v4l2_audio);
+	printf("ioctl(-1, %s, {index=0, name=\"cum tacent, clamant\""
+	       ", capability=%#x" NRAW(" /* V4L2_AUDCAP_??? */")
+	       ", mode=%#x" NRAW(" /* V4L2_AUDMODE_??? */")
+	       "}) = -1 EBADF (%m)\n",
+	       XLAT_STR(VIDIOC_S_AUDIO), p_v4l2_audio->capability,
+	       p_v4l2_audio->mode);
 
 	/* VIDIOC_LOG_STATUS */
 	ioctl(-1, VIDIOC_LOG_STATUS, 0);
